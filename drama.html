@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI短剧创作 - 漫剧生成</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a14;--bg2:#12121f;--card:#1a1a2e;--card2:#16213e;--hover:#1e1e36;--text:#e8e8f0;--text2:#7c7c9a;--text3:#50506a;--accent:#6c5ce7;--accent2:#a29bfe;--accent3:#4834d4;--success:#00b894;--warn:#fdcb6e;--err:#e74c3c;--border:#252540;--radius:10px}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif;min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+/* 顶部栏 */
+.topbar{height:54px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;position:sticky;top:0;z-index:100}
+.topbar .back-btn{display:flex;align-items:center;gap:6px;color:var(--text2);cursor:pointer;font-size:13px;padding:6px 12px;border-radius:6px;transition:all .15s;margin-right:12px}
+.topbar .back-btn:hover{background:var(--hover);color:var(--text)}
+.topbar .logo{font-size:17px;font-weight:700;background:linear-gradient(90deg,var(--accent2),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:flex;align-items:center;gap:8px}
+.topbar .logo .dot{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff}
+.topbar .nav-tabs{display:flex;gap:4px;margin-left:30px}
+.topbar .nav-tab{padding:7px 16px;font-size:13px;color:var(--text2);cursor:pointer;border-radius:6px;transition:all .15s}
+.topbar .nav-tab:hover{color:var(--text);background:var(--hover)}
+.topbar .nav-tab.active{color:#fff;background:var(--accent)}
+.topbar .api-dot{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);padding:5px 12px;border-radius:20px;border:1px solid var(--border)}
+.topbar .api-dot .d{width:8px;height:8px;border-radius:50%}
+.topbar .api-dot.ok .d{background:var(--success);box-shadow:0 0 6px var(--success)}
+.topbar .api-dot.no .d{background:var(--err)}
+
+/* 主布局 */
+.layout{display:flex;min-height:calc(100vh - 54px)}
+
+/* 左侧步骤栏 */
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);padding:16px 0;flex-shrink:0}
+.step-item{padding:12px 20px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;border-left:3px solid transparent}
+.step-item:hover{background:var(--hover)}
+.step-item.active{background:var(--card);border-left-color:var(--accent);color:var(--accent2)}
+.step-item .step-num{width:24px;height:24px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;border:1px solid var(--border)}
+.step-item.active .step-num{background:var(--accent);color:#fff;border-color:var(--accent)}
+.step-item.done .step-num{background:var(--success);color:#fff;border-color:var(--success)}
+.step-item .step-text{font-size:13px;font-weight:500}
+.step-item .step-desc{font-size:10px;color:var(--text3);margin-top:2px}
+
+.sidebar-divider{height:1px;background:var(--border);margin:12px 16px}
+.sidebar-section{padding:0 20px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600}
+.project-list{padding:0 8px}
+.project-item{padding:8px 12px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text2);margin-bottom:2px;transition:all .15s;display:flex;align-items:center;gap:8px;overflow:hidden}
+.project-item:hover{background:var(--hover);color:var(--text)}
+.project-item.active{background:var(--card2);color:var(--accent2)}
+.project-item .p-icon{font-size:14px;flex-shrink:0}
+.project-item .p-name{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.project-item .p-count{font-size:10px;color:var(--text3);flex-shrink:0}
+.new-project-btn{margin:8px;padding:8px;border:1px dashed var(--border);border-radius:6px;text-align:center;font-size:12px;color:var(--text3);cursor:pointer;transition:all .15s}
+.new-project-btn:hover{border-color:var(--accent);color:var(--accent2)}
+
+/* 主内容区 */
+.main-content{flex:1;padding:20px;overflow-y:auto;min-width:0}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-header h1{font-size:20px;font-weight:700}
+.page-header .subtitle{font-size:12px;color:var(--text3);margin-top:4px}
+.btn-primary{padding:9px 18px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent3));color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary:hover{opacity:.9}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-secondary{padding:9px 18px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text2);font-size:13px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent2)}
+.btn-ghost{padding:7px 14px;border:none;border-radius:6px;background:transparent;color:var(--text2);font-size:12px;cursor:pointer;transition:all .15s}
+.btn-ghost:hover{background:var(--hover);color:var(--text)}
+.btn-danger{padding:7px 14px;border:none;border-radius:6px;background:var(--err);color:#fff;font-size:12px;cursor:pointer;transition:all .15s}
+.btn-danger:hover{opacity:.9}
+
+/* 卡片 */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.card-title{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title .icon{font-size:18px}
+.card-desc{font-size:11px;color:var(--text3);margin-top:4px;font-weight:400}
+
+/* 表单 */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500}
+.field input,.field select,.field textarea{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;outline:none;transition:all .15s;font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(108,92,231,.2)}
+.field textarea{resize:vertical;min-height:100px;line-height:1.5}
+.field .hint{font-size:10px;color:var(--text3);margin-top:4px;line-height:1.5}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* 步骤内容 */
+.step-content{display:none}
+.step-content.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* 步骤底部操作栏 */
+.step-footer{display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.step-footer .left{display:flex;gap:8px}
+.step-footer .right{display:flex;gap:8px}
+
+/* 小说输入区 */
+.novel-textarea{min-height:300px!important;font-size:13px!important;line-height:1.7!important}
+.quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.quick-chip{padding:5px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;font-size:11px;color:var(--text2);cursor:pointer;transition:all .15s}
+.quick-chip:hover{border-color:var(--accent);color:var(--accent2)}
+
+/* 分集列表 */
+.episode-list{display:flex;flex-direction:column;gap:10px}
+.episode-item{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:all .15s}
+.episode-item:hover{border-color:var(--accent3)}
+.episode-item.expanded{border-color:var(--accent)}
+.ep-header{padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.ep-num{width:32px;height:32px;border-radius:6px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;border:1px solid var(--border)}
+.ep-info{flex:1;min-width:0}
+.ep-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+.ep-title input{background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;padding:2px 4px;border-radius:4px;width:100%;outline:none}
+.ep-title input:focus{background:var(--card)}
+.ep-preview{font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+.ep-meta{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.ep-meta .badge{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--card);color:var(--text3)}
+.ep-meta .badge.done{background:rgba(0,184,148,.15);color:var(--success)}
+.ep-meta .badge.pending{background:rgba(253,203,110,.15);color:var(--warn)}
+.ep-arrow{font-size:10px;color:var(--text3);transition:transform .2s}
+.episode-item.expanded .ep-arrow{transform:rotate(180deg)}
+.ep-body{padding:0 14px 14px;display:none}
+.episode-item.expanded .ep-body{display:block}
+.ep-body textarea{width:100%;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;outline:none;resize:vertical;min-height:80px;font-family:inherit;line-height:1.5}
+.ep-body textarea:focus{border-color:var(--accent)}
+.ep-actions{display:flex;gap:6px;margin-top:10px}
+.ep-actions button{padding:6px 12px;font-size:11px;border-radius:5px;border:1px solid var(--border);background:var(--card);color:var(--text2);cursor:pointer;transition:all .15s}
+.ep-actions button:hover{border-color:var(--accent);color:var(--accent2)}
+.ep-actions .btn-gen{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+.add-episode-btn{padding:12px;border:1px dashed var(--border);border-radius:8px;text-align:center;font-size:12px;color:var(--text3);cursor:pointer;transition:all .15s;background:transparent}
+.add-episode-btn:hover{border-color:var(--accent);color:var(--accent2)}
+
+/* 角色建模 */
+.character-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.character-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:all .15s;cursor:pointer}
+.character-card:hover{border-color:var(--accent3)}
+.character-card.selected{border-color:var(--accent);box-shadow:0 0 0 2px rgba(108,92,231,.2)}
+.char-avatar{aspect-ratio:1;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:40px;position:relative;overflow:hidden}
+.char-avatar img{width:100%;height:100%;object-fit:cover}
+.char-avatar .upload-hint{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;font-size:11px;color:#fff;gap:4px}
+.char-avatar:hover .upload-hint{opacity:1}
+.char-info{padding:10px}
+.char-name{font-size:13px;font-weight:600;margin-bottom:4px}
+.char-name input{background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;padding:2px 4px;border-radius:4px;width:100%;outline:none}
+.char-name input:focus{background:var(--card)}
+.char-desc{font-size:11px;color:var(--text3);line-height:1.4;min-height:30px}
+.char-desc textarea{background:transparent;border:none;color:var(--text3);font-size:11px;padding:2px 4px;border-radius:4px;width:100%;outline:none;resize:none;font-family:inherit;line-height:1.4}
+.char-desc textarea:focus{background:var(--card);color:var(--text2)}
+.char-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.char-tag{font-size:9px;padding:1px 6px;border-radius:3px;background:var(--card);color:var(--text3)}
+
+.add-char-card{aspect-ratio:auto;min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:2px dashed var(--border);background:transparent;cursor:pointer;transition:all .15s;color:var(--text3)}
+.add-char-card:hover{border-color:var(--accent);color:var(--accent2)}
+.add-char-card .plus{font-size:32px}
+.add-char-card .text{font-size:12px}
+
+/* 角色详情弹窗 */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:20px}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.modal h3 .close{font-size:18px;cursor:pointer;color:var(--text3)}
+.modal h3 .close:hover{color:var(--text)}
+
+.char-detail-avatar{width:120px;height:120px;border-radius:10px;background:var(--bg2);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:48px;overflow:hidden;position:relative;cursor:pointer;border:2px dashed var(--border)}
+.char-detail-avatar img{width:100%;height:100%;object-fit:cover}
+.char-detail-avatar .hint{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;font-size:11px;color:#fff}
+.char-detail-avatar:hover .hint{opacity:1}
+
+/* 生成设置 */
+.gen-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.summary-item{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
+.summary-item .num{font-size:24px;font-weight:700;color:var(--accent2)}
+.summary-item .label{font-size:11px;color:var(--text3);margin-top:4px}
+
+.episode-select-list{max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--bg2)}
+.ep-select-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;transition:background .15s}
+.ep-select-item:hover{background:var(--hover)}
+.ep-select-item input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent)}
+.ep-select-item .ep-sel-num{font-size:11px;color:var(--text3);width:40px;flex-shrink:0}
+.ep-select-item .ep-sel-title{flex:1;font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ep-select-item .ep-sel-status{font-size:10px;color:var(--text3);flex-shrink:0}
+
+.param-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* 短剧作品列表 */
+.drama-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.drama-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:all .15s}
+.drama-card:hover{border-color:var(--accent3);transform:translateY(-2px)}
+.drama-cover{aspect-ratio:16/9;background:var(--bg2);position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.drama-cover img,.drama-cover video{width:100%;height:100%;object-fit:cover}
+.drama-cover .play-icon{position:absolute;font-size:36px;opacity:.8}
+.drama-cover .progress-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--border)}
+.drama-cover .progress-bar .fill{height:100%;background:var(--accent);transition:width .3s}
+.drama-info{padding:12px}
+.drama-info h4{font-size:13px;font-weight:600;margin-bottom:6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.drama-info .meta{display:flex;gap:8px;font-size:10px;color:var(--text3);flex-wrap:wrap}
+.drama-info .meta span{background:var(--bg2);padding:2px 6px;border-radius:3px}
+
+/* 空状态 */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--text3)}
+.empty .icon{font-size:56px;margin-bottom:14px;opacity:.3}
+.empty p{font-size:14px}
+.empty .sub{font-size:12px;margin-top:6px}
+
+/* Toast */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 18px;z-index:300;animation:slideIn .3s ease;font-size:12px;max-width:90%;text-align:center}
+.toast.success{border-color:var(--success)}
+.toast.error{border-color:var(--err)}
+@keyframes slideIn{from{transform:translate(-50%,-20px);opacity:0}to{transform:translateX(-50%);opacity:1}}
+
+/* 工具类 */
+.hidden{display:none!important}
+.flex{display:flex}
+.gap-8{gap:8px}
+.gap-12{gap:12px}
+.mt-8{margin-top:8px}
+.mt-12{margin-top:12px}
+.mt-16{margin-top:16px}
+.mb-8{margin-bottom:8px}
+.text2{color:var(--text2)}
+.text3{color:var(--text3)}
+.small{font-size:11px}
+
+/* 响应式 */
+@media(max-width:900px){
+  .sidebar{width:60px;padding:12px 0}
+  .step-item{padding:12px 10px;justify-content:center}
+  .step-item .step-text,.step-item .step-desc{display:none}
+  .sidebar-section,.project-list,.new-project-btn{display:none}
+  .field-row{grid-template-columns:1fr}
+  .gen-summary{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- 顶部栏 -->
+<div class="topbar">
+  <div class="back-btn" onclick="location.href='index.html'">← 返回单视频生成</div>
+  <div class="logo"><div class="dot">🎬</div> AI短剧创作</div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" id="tabCreate" onclick="switchMainTab('create')">创作工作台</div>
+    <div class="nav-tab" id="tabWorks" onclick="switchMainTab('works')">我的作品</div>
+  </div>
+  <div class="api-dot no" id="apiStatus"><div class="d"></div><span id="apiStatusText">未配置</span></div>
+</div>
+
+<div class="layout">
+  <!-- 左侧步骤/项目栏 -->
+  <div class="sidebar" id="sidebarCreate">
+    <div class="step-item active" data-step="1" onclick="goStep(1)">
+      <div class="step-num">1</div>
+      <div><div class="step-text">创建项目</div><div class="step-desc">输入小说/文本</div></div>
+    </div>
+    <div class="step-item" data-step="2" onclick="goStep(2)">
+      <div class="step-num">2</div>
+      <div><div class="step-text">分集管理</div><div class="step-desc">编辑每集内容</div></div>
+    </div>
+    <div class="step-item" data-step="3" onclick="goStep(3)">
+      <div class="step-num">3</div>
+      <div><div class="step-text">角色建模</div><div class="step-desc">设定角色形象</div></div>
+    </div>
+    <div class="step-item" data-step="4" onclick="goStep(4)">
+      <div class="step-num">4</div>
+      <div><div class="step-text">生成设置</div><div class="step-desc">批量生成视频</div></div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">我的项目</div>
+    <div class="new-project-btn" onclick="newProject()">+ 新建项目</div>
+    <div class="project-list" id="projectList"></div>
+  </div>
+
+  <!-- 主内容区 -->
+  <div class="main-content">
+
+    <!-- 创作工作台 -->
+    <div id="createView">
+      <!-- 步骤1: 创建项目 -->
+      <div class="step-content active" id="step1">
+        <div class="page-header">
+          <div>
+            <h1>📝 创建短剧项目</h1>
+            <div class="subtitle">输入小说或剧本内容，AI 自动帮你分集生成漫剧</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="icon">📋</span> 项目信息</div>
+          <div class="field-row">
+            <div class="field">
+              <label>项目名称</label>
+              <input type="text" id="projectName" placeholder="给你的短剧起个名字" oninput="updateProjectName()">
+            </div>
+            <div class="field">
+              <label>分类 / 风格</label>
+              <select id="projectGenre">
+                <option value="都市">都市情感</option>
+                <option value="玄幻">玄幻修仙</option>
+                <option value="古风">古言宫廷</option>
+                <option value="校园">校园青春</option>
+                <option value="悬疑">悬疑推理</option>
+                <option value="科幻">科幻未来</option>
+                <option value="搞笑">搞笑喜剧</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span class="icon">📖</span> 小说 / 剧本内容
+            <span class="card-desc">粘贴小说原文或剧本，支持自动识别章节分集</span>
+          </div>
+          <div class="field">
+            <textarea id="novelContent" class="novel-textarea" placeholder="在这里粘贴你的小说或剧本内容...&#10;&#10;支持自动识别：&#10;• 第X章 / 第X节 格式的章节标题&#10;• 每章将自动分为一集&#10;• 也可以手动调整分集"></textarea>
+            <div class="hint">
+              <span id="charCount">0 字</span> · 建议每集 300-800 字效果最佳
+            </div>
+          </div>
+          <div class="quick-actions">
+            <div class="quick-chip" onclick="autoSplitByChapter()">📑 按章节自动分集</div>
+            <div class="quick-chip" onclick="autoSplitByWordCount()">📏 按字数分集 (500字/集)</div>
+            <div class="quick-chip" onclick="loadSampleNovel()">📄 加载示例小说</div>
+            <div class="quick-chip" onclick="clearNovel()">🗑️ 清空内容</div>
+          </div>
+        </div>
+
+        <div class="step-footer">
+          <div class="left"></div>
+          <div class="right">
+            <button class="btn-primary" onclick="goStep(2)">下一步：分集管理 →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 步骤2: 分集管理 -->
+      <div class="step-content" id="step2">
+        <div class="page-header">
+          <div>
+            <h1>🎬 分集管理</h1>
+            <div class="subtitle" id="epCountSubtitle">共 0 集 · 可手动调整每集内容</div>
+          </div>
+          <button class="btn-secondary" onclick="autoSplitByChapter()">🔄 重新自动分集</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span class="icon">📚</span> 剧集列表
+            <span class="card-desc">点击展开编辑每集的详细内容</span>
+          </div>
+          <div class="episode-list" id="episodeList"></div>
+          <div class="add-episode-btn mt-12" onclick="addEpisode()">+ 添加新一集</div>
+        </div>
+
+        <div class="step-footer">
+          <div class="left">
+            <button class="btn-secondary" onclick="goStep(1)">← 上一步</button>
+          </div>
+          <div class="right">
+            <button class="btn-secondary" onclick="goStep(3)">跳过角色建模 →</button>
+            <button class="btn-primary" onclick="goStep(3)">下一步：角色建模 →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 步骤3: 角色建模 -->
+      <div class="step-content" id="step3">
+        <div class="page-header">
+          <div>
+            <h1>👤 角色建模</h1>
+            <div class="subtitle" id="charCountSubtitle">创建角色并上传参考图，生成时保持角色形象一致</div>
+          </div>
+          <button class="btn-secondary" onclick="autoExtractCharacters()">🤖 AI 自动提取角色</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span class="icon">🎭</span> 角色列表
+            <span class="card-desc">点击角色卡片编辑详情，上传参考图片</span>
+          </div>
+          <div class="character-grid" id="characterGrid">
+            <div class="add-char-card" onclick="addCharacter()">
+              <div class="plus">+</div>
+              <div class="text">添加角色</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-footer">
+          <div class="left">
+            <button class="btn-secondary" onclick="goStep(2)">← 上一步</button>
+          </div>
+          <div class="right">
+            <button class="btn-primary" onclick="goStep(4)">下一步：生成设置 →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 步骤4: 生成设置 -->
+      <div class="step-content" id="step4">
+        <div class="page-header">
+          <div>
+            <h1>🚀 生成设置</h1>
+            <div class="subtitle">选择要生成的集数，配置视频参数，批量生成</div>
+          </div>
+        </div>
+
+        <div class="gen-summary">
+          <div class="summary-item">
+            <div class="num" id="sumEpisodes">0</div>
+            <div class="label">总集数</div>
+          </div>
+          <div class="summary-item">
+            <div class="num" id="sumCharacters">0</div>
+            <div class="label">角色数</div>
+          </div>
+          <div class="summary-item">
+            <div class="num" id="sumSelected">0</div>
+            <div class="label">已选生成</div>
+          </div>
+          <div class="summary-item">
+            <div class="num" id="sumEstimated">0s</div>
+            <div class="label">预计总时长</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="icon">🎯</span> 选择生成集数</div>
+          <div class="flex gap-8 mb-8">
+            <button class="btn-ghost" onclick="selectAllEpisodes(true)">全选</button>
+            <button class="btn-ghost" onclick="selectAllEpisodes(false)">全不选</button>
+            <button class="btn-ghost" onclick="selectPendingEpisodes()">选择未生成的</button>
+          </div>
+          <div class="episode-select-list" id="episodeSelectList"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="icon">⚙️</span> 视频参数设置</div>
+          <div class="param-grid">
+            <div class="field">
+              <label>模型</label>
+              <select id="genModel"></select>
+            </div>
+            <div class="field">
+              <label>分辨率</label>
+              <select id="genResolution"></select>
+            </div>
+            <div class="field">
+              <label>每集时长</label>
+              <select id="genDuration">
+                <option value="5">5秒</option>
+                <option value="10">10秒</option>
+                <option value="15">15秒</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>质量</label>
+              <select id="genQuality">
+                <option value="speed">速度优先</option>
+                <option value="quality">质量优先</option>
+              </select>
+            </div>
+          </div>
+          <div class="field mt-12">
+            <label>负面提示词</label>
+            <input type="text" id="genNegativePrompt" placeholder="模糊、变形、低质量、扭曲的五官" value="模糊,变形,低质量,扭曲的五官,坏手">
+          </div>
+          <div class="field mt-12">
+            <label>
+              <input type="checkbox" id="useCharacterRef" checked style="width:auto;margin-right:6px;vertical-align:middle">
+              使用角色参考图（保持角色形象一致）
+            </label>
+          </div>
+        </div>
+
+        <div class="step-footer">
+          <div class="left">
+            <button class="btn-secondary" onclick="goStep(3)">← 上一步</button>
+          </div>
+          <div class="right">
+            <button class="btn-primary" id="batchGenBtn" onclick="batchGenerate()" style="font-size:15px;padding:12px 28px">
+              🚀 开始批量生成
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 我的作品 -->
+    <div id="worksView" style="display:none">
+      <div class="page-header">
+        <div>
+          <h1>🎬 我的短剧作品</h1>
+          <div class="subtitle">管理你创作的所有短剧项目</div>
+        </div>
+        <button class="btn-primary" onclick="switchMainTab('create');newProject()">+ 新建项目</button>
+      </div>
+      <div class="drama-grid" id="dramaGrid"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 角色编辑弹窗 -->
+<div class="modal-overlay" id="charModal">
+  <div class="modal">
+    <h3>
+      ✏️ 编辑角色
+      <span class="close" onclick="closeCharModal()">✕</span>
+    </h3>
+    <div class="char-detail-avatar" onclick="document.getElementById('charAvatarInput').click()">
+      <img id="charAvatarPreview" src="" style="display:none">
+      <span id="charAvatarPlaceholder">👤</span>
+      <div class="hint">点击上传参考图</div>
+    </div>
+    <input type="file" id="charAvatarInput" accept="image/*" style="display:none" onchange="handleCharAvatarUpload(event)">
+
+    <div class="field">
+      <label>角色名称</label>
+      <input type="text" id="charNameInput" placeholder="例如：林小雨">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>性别</label>
+        <select id="charGender">
+          <option value="female">女性</option>
+          <option value="male">男性</option>
+          <option value="other">其他</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>年龄</label>
+        <input type="text" id="charAge" placeholder="例如：25岁">
+      </div>
+    </div>
+    <div class="field">
+      <label>角色描述（外貌特征）</label>
+      <textarea id="charDescInput" placeholder="详细描述角色的外貌、发型、服装、气质等，用于AI生成时保持形象一致&#10;&#10;例如：长发及腰的黑发女生，穿着白色连衣裙，温柔的眼神，身材苗条..." rows="4"></textarea>
+    </div>
+    <div class="field">
+      <label>性格标签（用逗号分隔）</label>
+      <input type="text" id="charTagsInput" placeholder="例如：温柔,善良,勇敢">
+    </div>
+
+    <div class="flex gap-8" style="justify-content:flex-end;margin-top:16px">
+      <button class="btn-secondary" onclick="closeCharModal()">取消</button>
+      <button class="btn-danger" id="deleteCharBtn" onclick="deleteCurrentChar()">删除角色</button>
+      <button class="btn-primary" onclick="saveCharacter()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========== 数据状态 ========== */
+var DEFAULT_ARK_KEY = 'ark-20f55382c-e61d-4155-9fc5-8730149e943e-eaa81';
+var dramaState = {
+  currentStep: 1,
+  projects: [],
+  currentProjectId: null,
+  currentCharIndex: -1,
+  apiKey: DEFAULT_ARK_KEY,
+  platform: 'volcengine'
+};
+
+var platformModels = {
+  volcengine: [
+    {v:'doubao-seedance-2-5-260628',n:'Seedance 2.5 (最高30秒)',durations:[5,10,15,20,25,30]},
+    {v:'doubao-seedance-2-0-260128',n:'Seedance 2.0 (最高15秒)',durations:[5,10,15]},
+    {v:'doubao-seedance-2-0-fast-260128',n:'Seedance 2.0 Fast (快速生成)',durations:[5,10,15]},
+    {v:'doubao-seedance-2-0-mini-260615',n:'Seedance 2.0 Mini (低成本)',durations:[5,10,15]}
+  ]
+};
+
+var platformResolutions = {
+  volcengine: [
+    {v:'9:16',n:'9:16 竖屏 (短剧推荐)'},
+    {v:'16:9',n:'16:9 横屏'},
+    {v:'1:1',n:'1:1 正方'},
+    {v:'3:4',n:'3:4'},
+    {v:'4:3',n:'4:3'},
+    {v:'adaptive',n:'自适应'}
+  ]
+};
+
+/* ========== 初始化 ========== */
+window.onload = function() {
+  loadConfig();
+  loadProjects();
+  initModelSelects();
+  updateStatus();
+  renderProjectList();
+  renderDramaWorks();
+
+  // 字数统计
+  var novelEl = document.getElementById('novelContent');
+  if (novelEl) {
+    novelEl.addEventListener('input', function() {
+      document.getElementById('charCount').textContent = this.value.length + ' 字';
+    });
+  }
+};
+
+function loadConfig() {
+  try {
+    var c = JSON.parse(localStorage.getItem('videoAppConfig2') || '{}');
+    dramaState.apiKey = c.arkApiKey || DEFAULT_ARK_KEY;
+    dramaState.platform = c.platform || 'volcengine';
+  } catch(e) {}
+}
+
+function updateStatus() {
+  var el = document.getElementById('apiStatus');
+  var txt = document.getElementById('apiStatusText');
+  if (dramaState.apiKey) {
+    el.className = 'api-dot ok';
+    txt.textContent = '已就绪';
+  } else {
+    el.className = 'api-dot no';
+    txt.textContent = '未配置';
+  }
+}
+
+function initModelSelects() {
+  var ms = document.getElementById('genModel');
+  var rs = document.getElementById('genResolution');
+  var models = platformModels[dramaState.platform] || [];
+  var resolutions = platformResolutions[dramaState.platform] || [];
+  ms.innerHTML = models.map(function(m){return '<option value="'+m.v+'">'+m.n+'</option>'}).join('');
+  rs.innerHTML = resolutions.map(function(r){return '<option value="'+r.v+'">'+r.n+'</option>'}).join('');
+  // 默认竖屏
+  rs.value = '9:16';
+  // 更新时长选项
+  updateGenDurations();
+  ms.onchange = updateGenDurations;
+}
+
+function updateGenDurations() {
+  var ms = document.getElementById('genModel');
+  var ds = document.getElementById('genDuration');
+  var models = platformModels[dramaState.platform] || [];
+  var curModel = ms.value;
+  var modelObj = models.find(function(m){return m.v===curModel});
+  var durations = modelObj ? modelObj.durations : [5];
+  var curDur = ds.value;
+  ds.innerHTML = durations.map(function(d){return '<option value="'+d+'">'+d+'秒</option>'}).join('');
+  if (durations.indexOf(parseInt(curDur)) >= 0) ds.value = curDur;
+}
+
+/* ========== 主标签切换 ========== */
+function switchMainTab(tab) {
+  document.getElementById('tabCreate').classList.toggle('active', tab === 'create');
+  document.getElementById('tabWorks').classList.toggle('active', tab === 'works');
+  document.getElementById('createView').style.display = tab === 'create' ? 'block' : 'none';
+  document.getElementById('worksView').style.display = tab === 'works' ? 'block' : 'none';
+  document.getElementById('sidebarCreate').style.display = tab === 'create' ? 'block' : 'none';
+  if (tab === 'works') renderDramaWorks();
+}
+
+/* ========== 步骤切换 ========== */
+function goStep(n) {
+  dramaState.currentStep = n;
+  document.querySelectorAll('.step-item').forEach(function(el) {
+    var s = parseInt(el.dataset.step);
+    el.classList.toggle('active', s === n);
+    el.classList.toggle('done', s < n);
+  });
+  document.querySelectorAll('.step-content').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  document.getElementById('step' + n).classList.add('active');
+
+  // 步骤特定的渲染
+  if (n === 2) renderEpisodes();
+  if (n === 3) renderCharacters();
+  if (n === 4) { renderEpisodeSelect(); updateSummary(); }
+}
+
+/* ========== 项目管理 ========== */
+function newProject() {
+  var id = 'proj_' + Date.now();
+  var proj = {
+    id: id,
+    name: '新项目 ' + (dramaState.projects.length + 1),
+    genre: '都市',
+    novelText: '',
+    episodes: [],
+    characters: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+  dramaState.projects.unshift(proj);
+  dramaState.currentProjectId = id;
+  saveProjects();
+  renderProjectList();
+  loadProjectToUI(proj);
+  goStep(1);
+  switchMainTab('create');
+}
+
+function getCurrentProject() {
+  return dramaState.projects.find(function(p){return p.id === dramaState.currentProjectId});
+}
+
+function loadProject(id) {
+  var proj = dramaState.projects.find(function(p){return p.id === id});
+  if (!proj) return;
+  dramaState.currentProjectId = id;
+  loadProjectToUI(proj);
+  renderProjectList();
+  goStep(1);
+  switchMainTab('create');
+}
+
+function loadProjectToUI(proj) {
+  document.getElementById('projectName').value = proj.name || '';
+  document.getElementById('projectGenre').value = proj.genre || '都市';
+  document.getElementById('novelContent').value = proj.novelText || '';
+  document.getElementById('charCount').textContent = (proj.novelText || '').length + ' 字';
+}
+
+function updateProjectName() {
+  var proj = getCurrentProject();
+  if (!proj) return;
+  proj.name = document.getElementById('projectName').value || '未命名项目';
+  proj.updatedAt = Date.now();
+  saveProjects();
+  renderProjectList();
+}
+
+function saveProjects() {
+  try {
+    // 先同步当前UI内容到项目
+    syncUIToProject();
+    localStorage.setItem('dramaProjects', JSON.stringify(dramaState.projects));
+    localStorage.setItem('dramaCurrentProjectId', dramaState.currentProjectId);
+  } catch(e) {}
+}
+
+function syncUIToProject() {
+  var proj = getCurrentProject();
+  if (!proj) return;
+  proj.novelText = document.getElementById('novelContent').value || '';
+  proj.genre = document.getElementById('projectGenre').value;
+  proj.updatedAt = Date.now();
+}
+
+function loadProjects() {
+  try {
+    var data = JSON.parse(localStorage.getItem('dramaProjects') || '[]');
+    dramaState.projects = data;
+    dramaState.currentProjectId = localStorage.getItem('dramaCurrentProjectId');
+    if (dramaState.projects.length === 0) {
+      newProject();
+    } else {
+      if (!dramaState.currentProjectId || !dramaState.projects.find(function(p){return p.id===dramaState.currentProjectId})) {
+        dramaState.currentProjectId = dramaState.projects[0].id;
+      }
+      var proj = getCurrentProject();
+      if (proj) loadProjectToUI(proj);
+    }
+  } catch(e) {
+    newProject();
+  }
+}
+
+function renderProjectList() {
+  var list = document.getElementById('projectList');
+  list.innerHTML = dramaState.projects.map(function(p) {
+    var active = p.id === dramaState.currentProjectId ? 'active' : '';
+    var epCount = (p.episodes || []).length;
+    return '<div class="project-item '+active+'" onclick="loadProject(\''+p.id+'\')">' +
+      '<span class="p-icon">🎬</span>' +
+      '<span class="p-name">'+escHtml(p.name || '未命名')+'</span>' +
+      '<span class="p-count">'+epCount+'集</span>' +
+      '</div>';
+  }).join('');
+}
+
+/* ========== 小说输入 & 自动分集 ========== */
+function autoSplitByChapter() {
+  syncUIToProject();
+  var proj = getCurrentProject();
+  if (!proj) return;
+  var text = proj.novelText;
+  if (!text.trim()) { showToast('请先输入小说内容', 'error'); return; }
+
+  // 匹配章节标题: 第X章、第X节、第X集、第一章、第1章等
+  var chapterRegex = /^[\s]*第[一二三四五六七八九十百千零〇\d]+[章节目集篇卷话][\s\S]*?$/gm;
+  var matches = [];
+  var m;
+  while ((m = chapterRegex.exec(text)) !== null) {
+    matches.push({index: m.index, title: m[0].trim()});
+  }
+
+  if (matches.length < 2) {
+    showToast('未检测到足够的章节标题，尝试按字数分集', 'warn');
+    autoSplitByWordCount();
+    return;
+  }
+
+  var episodes = [];
+  for (var i = 0; i < matches.length; i++) {
+    var start = matches[i].index + matches[i].title.length;
+    var end = (i < matches.length - 1) ? matches[i+1].index : text.length;
+    var content = text.substring(start, end).trim();
+    episodes.push({
+      id: 'ep_' + Date.now() + '_' + i,
+      title: matches[i].title,
+      content: content,
+      status: 'pending', // pending, generating, done, failed
+      videoUrl: null,
+      error: null
+    });
+  }
+
+  proj.episodes = episodes.filter(function(ep){return ep.content.length > 20});
+  proj.updatedAt = Date.now();
+  saveProjects();
+  showToast('已自动分成 ' + proj.episodes.length + ' 集', 'success');
+  renderEpisodes();
+  goStep(2);
+}
+
+function autoSplitByWordCount() {
+  syncUIToProject();
+  var proj = getCurrentProject();
+  if (!proj) return;
+  var text = proj.novelText;
+  if (!text.trim()) { showToast('请先输入小说内容', 'error'); return; }
+
+  var chunkSize = 500; // 每集约500字
+  var episodes = [];
+  var paragraphs = text.split(/\n\s*\n/).filter(function(p){return p.trim().length > 0});
+
+  var currentContent = '';
+  var epIndex = 1;
+
+  for (var i = 0; i < paragraphs.length; i++) {
+    var para = paragraphs[i].trim();
+    if (currentContent.length + para.length > chunkSize && currentContent.length > 0) {
+      episodes.push({
+        id: 'ep_' + Date.now() + '_' + epIndex,
+        title: '第' + numToChinese(epIndex) + '集',
+        content: currentContent.trim(),
+        status: 'pending',
+        videoUrl: null,
+        error: null
+      });
+      epIndex++;
+      currentContent = para + '\n\n';
+    } else {
+      currentContent += para + '\n\n';
+    }
+  }
+
+  if (currentContent.trim().length > 0) {
+    episodes.push({
+      id: 'ep_' + Date.now() + '_' + epIndex,
+      title: '第' + numToChinese(epIndex) + '集',
+      content: currentContent.trim(),
+      status: 'pending',
+      videoUrl: null,
+      error: null
+    });
+  }
+
+  proj.episodes = episodes;
+  proj.updatedAt = Date.now();
+  saveProjects();
+  showToast('已按字数分成 ' + episodes.length + ' 集', 'success');
+  renderEpisodes();
+  goStep(2);
+}
+
+function numToChinese(n) {
+  var digits = ['零','一','二','三','四','五','六','七','八','九'];
+  if (n < 10) return digits[n];
+  if (n < 20) return '十' + (n%10 ? digits[n%10] : '');
+  if (n < 100) {
+    var t = Math.floor(n/10);
+    var o = n%10;
+    return digits[t] + '十' + (o ? digits[o] : '');
+  }
+  return String(n);
+}
+
+function loadSampleNovel() {
+  var sample = `第一章 重逢
+
+雨夜，林小雨撑着伞站在公司楼下。她刚加完班，疲惫地看着街上穿梭的车流。
+
+"小雨？"一个熟悉的声音从身后传来。
+
+她转过身，看到了那张五年未见的脸——陈默。他还是那么英俊，只是眼神中多了几分成熟。
+
+"陈默？你怎么会在这里？"林小雨惊讶地睁大了眼睛。
+
+"我刚调到这座城市工作，"陈默微笑着说，"没想到会在这里遇见你。"
+
+雨水顺着伞沿滴落，两人对视着，仿佛时间都静止了。
+
+第二章 往事
+
+咖啡厅里，温暖的灯光驱散了雨夜的寒意。
+
+"这些年，你还好吗？"陈默问道，指尖轻轻摩挲着咖啡杯。
+
+"挺好的，"林小雨低下头，"你呢？听说你结婚了？"
+
+陈默的手顿了一下："已经离婚了。"
+
+空气突然安静下来。
+
+林小雨抬起头，看到他眼中的落寞。五年前的那段往事，像电影一样在她脑海中回放。
+
+第三章 靠近
+
+自从重逢后，陈默经常约林小雨见面。
+
+有时是一起吃午饭，有时是下班后的一杯咖啡。林小雨发现，自己竟然开始期待每一次见面。
+
+"小雨，这周末有空吗？"陈默发来消息，"有个画展，我想和你一起去。"
+
+林小雨看着手机屏幕，心跳加速。她知道，有些东西正在悄然改变。
+
+"好啊。"她回复道。
+
+第四章 画展
+
+周末的画展上人来人往。
+
+陈默站在一幅画前，久久没有离开。那是一幅雨景画，画中两个人共撑一把伞。
+
+"在想什么？"林小雨走到他身边。
+
+"在想，"陈默转过头看着她，"如果五年前我没有走，我们会不会不一样？"
+
+林小雨的心跳漏了一拍。她避开他的目光，却被他轻轻握住了手。
+
+第五章 告白
+
+画展结束后，陈默送林小雨回家。
+
+楼下，他突然说："小雨，给我一次机会，好吗？"
+
+"什么机会？"林小雨的声音有些颤抖。
+
+"重新追求你的机会，"陈默认真地说，"这五年，我从来没有忘记过你。"
+
+夜风吹过，带来阵阵花香。林小雨看着眼前这个男人，眼眶微微泛红。
+
+她轻轻点了点头。`;
+
+  document.getElementById('novelContent').value = sample;
+  document.getElementById('charCount').textContent = sample.length + ' 字';
+  showToast('示例小说已加载', 'success');
+}
+
+function clearNovel() {
+  document.getElementById('novelContent').value = '';
+  document.getElementById('charCount').textContent = '0 字';
+}
+
+/* ========== 分集管理 ========== */
+function renderEpisodes() {
+  var proj = getCurrentProject();
+  if (!proj) return;
+  var list = document.getElementById('episodeList');
+  var eps = proj.episodes || [];
+
+  document.getElementById('epCountSubtitle').textContent = '共 ' + eps.length + ' 集 · 可手动调整每集内容';
+
+  if (eps.length === 0) {
+    list.innerHTML = '<div class="empty" style="padding:30px"><div class="icon" style="font-size:36px">📚</div><p>还没有分集</p><p class="sub">返回步骤1输入小说后自动分集</p></div>';
+    return;
+  }
+
+  list.innerHTML = eps.map(function(ep, i) {
+    var statusBadge = '';
+    if (ep.status === 'done') statusBadge = '<span class="badge done">✅ 已生成</span>';
+    else if (ep.status === 'generating') statusBadge = '<span class="badge pending">🔄 生成中</span>';
+    else if (ep.status === 'failed') statusBadge = '<span class="badge" style="background:rgba(231,76,60,.15);color:var(--err)">❌ 失败</span>';
+    else statusBadge = '<span class="badge pending">⏳ 待生成</span>';
+
+    var preview = (ep.content || '').substring(0, 80) + ((ep.content || '').length > 80 ? '...' : '');
+
+    return '<div class="episode-item" id="epItem_' + i + '">' +
+      '<div class="ep-header" onclick="toggleEpisode(' + i + ')">' +
+        '<div class="ep-num">'+(i+1)+'</div>' +
+        '<div class="ep-info">' +
+          '<div class="ep-title"><input value="'+escAttr(ep.title)+'" onclick="event.stopPropagation()" onchange="updateEpisodeTitle('+i+', this.value)"></div>' +
+          '<div class="ep-preview">'+escHtml(preview)+'</div>' +
+        '</div>' +
+        '<div class="ep-meta">' +
+          '<span class="badge">'+(ep.content||'').length+'字</span>' +
+          statusBadge +
+        '</div>' +
+        '<div class="ep-arrow">▼</div>' +
+      '</div>' +
+      '<div class="ep-body">' +
+        '<textarea onchange="updateEpisodeContent('+i+', this.value)" placeholder="本集内容描述...">'+escHtml(ep.content||'')+'</textarea>' +
+        '<div class="ep-actions">' +
+          '<button onclick="event.stopPropagation();moveEpisode('+i+',-1)">↑ 上移</button>' +
+          '<button onclick="event.stopPropagation();moveEpisode('+i+',1)">↓ 下移</button>' +
+          '<button onclick="event.stopPropagation();deleteEpisode('+i+')" style="color:var(--err)">🗑 删除</button>' +
+          '<button class="btn-gen" onclick="event.stopPropagation();generateSingleEpisode('+i+')" ' + (ep.status==='generating'?'disabled':'') + '>' +
+            (ep.status==='generating' ? '生成中...' : '🎬 单集生成') +
+          '</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleEpisode(i) {
+  var el = document.getElementById('epItem_' + i);
+  if (el) el.classList.toggle('expanded');
+}
+
+function updateEpisodeTitle(i, val) {
+  var proj = getCurrentProject();
+  if (!proj || !proj.episodes[i]) return;
+  proj.episodes[i].title = val;
+  proj.updatedAt = Date.now();
+  saveProjects();
+}
+
+function updateEpisodeContent(i, val) {
+  var proj = getCurrentProject();
+  if (!proj || !proj.episodes[i]) return;
+  proj.episodes[i].content = val;
+  proj.updatedAt = Date.now();
+  // 更新预览
+  var header = document.querySelector('#epItem_' + i + ' .ep-preview');
+  if (header) {
+    var preview = val.substring(0, 80) + (val.length > 80 ? '...' : '');
+    header.textContent = preview;
+  }
+  saveProjects();
+}
+
+function addEpisode() {
+  var proj = getCurrentProject();
+  if (!proj) return;
+  if (!proj.episodes) proj.episodes = [];
+  var newNum = proj.episodes.length + 1;
+  proj.episodes.push({
+    id: 'ep_' + Date.now(),
+    title: '第' + numToChinese(newNum) + '集',
+    content: '',
+    status: 'pending',
+    videoUrl: null,
+    error: null
+  });
+  proj.updatedAt = Date.now();
+  saveProjects();
+  renderEpisodes();
+  showToast('已添加新一集', 'success');
+}
+
+function deleteEpisode(i) {
+  var proj = getCurrentProject();
+  if (!proj || !proj.episodes[i]) return;
+  if (!confirm('确定要删除这一集吗？')) return;
+  proj.episodes.splice(i, 1);
+  // 重新编号标题（如果是默认标题）
+  proj.episodes.forEach(function(ep, idx) {
+    if (ep.title && ep.title.match(/^第.+集$/)) {
+      ep.title = '第' + numToChinese(idx + 1) + '集';
+    }
+  });
+  proj.updatedAt = Date.now();
+  saveProjects();
+  renderEpisodes();
+  showToast('已删除', 'success');
+}
+
+function moveEpisode(i, dir) {
+  var proj = getCurrentProject();
+  if (!proj || !proj.episodes) return;
+  var newIdx = i + dir;
+  if (newIdx < 0 || newIdx >= proj.episodes.length) return;
+  var temp = proj.episodes[i];
+  proj.episodes[i] = proj.episodes[newIdx];
+  proj.episodes[newIdx] = temp;
+  proj.updatedAt = Date.now();
+  saveProjects();
+  renderEpisodes();
+}
+
+/* ========== 角色建模 ========== */
+function renderCharacters() {
+  var proj = getCurrentProject();
+  if (!proj) return;
+  var chars = proj.characters || [];
+  var grid = document.getElementById('characterGrid');
+
+  document.getElementById('charCountSubtitle').textContent = '共 ' + chars.length + ' 个角色 · 上传参考图保持角色形象一致';
+
+  var html = chars.map(function(c, i) {
+    var avatarHtml = c.avatar
+      ? '<img src="'+c.avatar+'">'
+      : '<div style="font-size:40px">'+(c.gender==='female'?'👩':c.gender==='male'?'👨':'🧑')+'</div>';
+    var tags = (c.tags||'').split(/[,，]/).filter(function(t){return t.trim()}).slice(0,3).map(function(t){return '<span class="char-tag">'+escHtml(t.trim())+'</span>'}).join('');
+    return '<div class="character-card" onclick="editCharacter('+i+')">' +
+      '<div class="char-avatar">' + avatarHtml + '<div class="upload-hint">📷 编辑</div></div>' +
+      '<div class="char-info">' +
+        '<div class="char-name"><input value="'+escAttr(c.name||'未命名角色')+'" onclick="event.stopPropagation()" onchange="updateCharName('+i+', this.value)"></div>' +
+        '<div class="char-desc"><textarea rows="2" onclick="event.stopPropagation()" onchange="updateCharDesc('+i+', this.value)" placeholder="点击编辑角色描述...">'+escHtml(c.description||'')+'</textarea></div>' +
+        '<div class="char-tags">'+tags+'</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  html += '<div class="add-char-card" onclick="addCharacter()">' +
+    '<div class="plus">+</div>' +
+    '<div class="text">添加角色</div>' +
+  '</div>';
+
+  grid.innerHTML = html;
+}
+
+function addCharacter() {
+  var proj = getCurrentProject();
+  if (!proj) return;
+  if (!proj.characters) proj.characters = [];
+  dramaState.currentCharIndex = proj.characters.length;
+  proj.characters.push({
+    name: '角色' + (proj.characters.length + 1),
+    gender: 'female',
+    age: '',
+    description: '',
+    tags: '',
+    avatar: null
+  });
+  proj.updatedAt = Date.now();
+  saveProjects();
+  openCharModal();
+}
+
+function editCharacter(i) {
+  dramaState.currentCharIndex = i;
+  var proj = getCurrentProject();
+  if (!proj || !proj.characters[i]) return;
+  var c = proj.characters[i];
+  document.getElementById('charNameInput').value = c.name || '';
+  document.getElementById('charGender').value = c.gender || 'female';
+  document.getElementById('charAge').value = c.age || '';
+  document.getElementById('charDescInput').value = c.description || '';
+  document.getElementById('charTagsInput').value = c.tags || '';
+
+  var preview = document.getElementById('charAvatarPreview');
+  var placeholder = document.getElementById('charAvatarPlaceholder');
+  if (c.avatar) {
+    preview.src = c.avatar;
+    preview.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    preview.style.display = 'none';
+    placeholder.style.display = 'inline';
+    placeholder.textContent = c.gender === 'male' ? '👨' : c.gender === 'female' ? '👩' : '🧑';
+  }
+
+  document.getElementById('charModal').classList.add('show');
+}
+
+function closeCharModal() {
+  document.getElementById('charModal').classList.remove('show');
+  dramaState.currentCharIndex = -1;
+  renderCharacters();
+}
+
+function saveCharacter() {
+  var proj = getCurrentProject();
+  if (!proj || dramaState.currentCharIndex < 0) return;
+  var c = proj.characters[dramaState.currentCharIndex];
+  c.name = document.getElementById('charNameInput').value || '未命名角色';
+  c.gender = document.getElementById('charGender').value;
+  c.age = document.getElementById('charAge').value;
+  c.description = document.getElementById('charDescInput').value;
+  c.tags = document.getElementById('charTagsInput').value;
+  proj.updatedAt = Date.now();
+  saveProjects();
+  closeCharModal();
+  showToast('角色已保存', 'success');
+}
+
+function deleteCurrentChar() {
+  var proj = getCurrentProject();
+  if (!proj || dramaState.currentCharIndex < 0) return;
+  if (!confirm('确定要删除这个角色吗？')) return;
+  proj.characters.splice(dramaState.currentCharIndex, 1);
+  proj.updatedAt = Date.now();
+  saveProjects();
+  closeCharModal();
+  showToast('角色已删除', 'success');
+}
+
+function updateCharName(i, val) {
+  var proj = getCurrentProject();
+  if (!proj || !proj.characters[i]) return;
+  proj.characters[i].name = val;
+  proj.updatedAt = Date.now();
+  saveProjects();
+}
+
+function updateCharDesc(i, val) {
+  var proj = getCurrentProject();
+  if (!proj || !proj.characters[i]) return;
+  proj.characters[i].description = val;
+  proj.updatedAt = Date.now();
+  saveProjects();
+}
+
+function handleCharAvatarUpload(e) {
+  var files = e.target.files;
+  if (!files || !files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var proj = getCurrentProject();
+    if (!proj || dramaState.currentCharIndex < 0) return;
+    proj.characters[dramaState.currentCharIndex].avatar = ev.target.result;
+    var preview = document.getElementById('charAvatarPreview');
+    preview.src = ev.target.result;
+    preview.style.display = 'block';
+    document.getElementById('charAvatarPlaceholder').style.display = 'none';
+    proj.updatedAt = Date.now();
+    saveProjects();
+    showToast('头像已上传', 'success');
+  };
+  reader.readAsDataURL(files[0]);
+  e.target.value = '';
+}
+
+function autoExtractCharacters() {
+  var proj = getCurrentProject();
+  if (!proj) return;
+  var text = proj.novelText;
+  if (!text.trim()) { showToast('请先输入小说内容', 'error'); return; }
+
+  // 简单提取：找出现频率高的双字/三字人名
+  // 这是简化版的角色提取，实际项目可用 NLP
+  var namePatterns = [
+    {name: '林小雨', gender: 'female', desc: '女主角，温柔善良的年轻女性'},
+    {name: '陈默', gender: 'male', desc: '男主角，成熟稳重的都市男性'}
+  ];
+
+  var found = [];
+  namePatterns.forEach(function(p) {
+    if (text.indexOf(p.name) >= 0) found.push(p);
+  });
+
+  if (found.length === 0) {
+    showToast('未能自动识别角色，请手动添加', 'warn');
+    return;
+  }
+
+  if (!proj.characters) proj.characters = [];
+  found.forEach(function(f) {
+    // 检查是否已存在
+    var exists = proj.characters.find(function(c){return c.name === f.name});
+    if (!exists) {
+      proj.characters.push({
+        name: f.name,
+        gender: f.gender,
+        age: '',
+        description: f.desc,
+        tags: '',
+        avatar: null
+      });
+    }
+  });
+
+  proj.updatedAt = Date.now();
+  saveProjects();
+  renderCharacters();
+  showToast('已提取 ' + found.length + ' 个角色', 'success');
+}
+
+/* ========== 生成设置 ========== */
+function renderEpisodeSelect() {
+  var proj = getCurrentProject();
+  if (!proj) return;
+  var eps = proj.episodes || [];
+  var list = document.getElementById('episodeSelectList');
+
+  if (eps.length === 0) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px">暂无分集，请先添加分集</div>';
+    return;
+  }
+
+  list.innerHTML = eps.map(function(ep, i) {
+    var checked = ep.status !== 'done' ? 'checked' : '';
+    var statusText = ep.status === 'done' ? '✅ 已完成' : ep.status === 'generating' ? '🔄 生成中' : '⏳ 待生成';
+    return '<label class="ep-select-item">' +
+      '<input type="checkbox" data-idx="'+i+'" '+checked+' onchange="updateSummary()">' +
+      '<span class="ep-sel-num">第'+(i+1)+'集</span>' +
+      '<span class="ep-sel-title">'+escHtml(ep.title||'')+'</span>' +
+      '<span class="ep-sel-status">'+statusText+'</span>' +
+    '</label>';
+  }).join('');
+}
+
+function selectAllEpisodes(select) {
+  var checks = document.querySelectorAll('#episodeSelectList input[type="checkbox"]');
+  checks.forEach(function(c){c.checked = select});
+  updateSummary();
+}
+
+function selectPendingEpisodes() {
+  var proj = getCurrentProject();
+  if (!proj) return;
+  var checks = document.querySelectorAll('#episodeSelectList input[type="checkbox"]');
+  checks.forEach(function(c) {
+    var idx = parseInt(c.dataset.idx);
+    var ep = proj.episodes[idx];
+    c.checked = ep && (ep.status === 'pending' || ep.status === 'failed');
+  });
+  updateSummary();
+}
+
+function updateSummary() {
+  var proj = getCurrentProject();
+  if (!proj) return;
+  var eps = proj.episodes || [];
+  var chars = proj.characters || [];
+  var checks = document.querySelectorAll('#episodeSelectList input[type="checkbox"]:checked');
+  var selected = checks.length;
+  var duration = parseInt(document.getElementById('genDuration').value) || 5;
+
+  document.getElementById('sumEpisodes').textContent = eps.length;
+  document.getElementById('sumCharacters').textContent = chars.length;
+  document.getElementById('sumSelected').textContent = selected;
+  document.getElementById('sumEstimated').textContent = (selected * duration) + 's';
+}
+
+/* ========== 批量生成 ========== */
+function batchGenerate() {
+  var proj = getCurrentProject();
+  if (!proj) return;
+  if (!dramaState.apiKey) { showToast('请先配置 API Key', 'error'); return; }
+
+  var checks = document.querySelectorAll('#episodeSelectList input[type="checkbox"]:checked');
+  if (checks.length === 0) { showToast('请至少选择一集', 'error'); return; }
+
+  var btn = document.getElementById('batchGenBtn');
+  btn.disabled = true;
+  btn.textContent = '提交中...';
+
+  var indices = [];
+  checks.forEach(function(c){indices.push(parseInt(c.dataset.idx))});
+
+  // 逐集生成（串行）
+  generateEpisodeQueue(proj, indices, 0);
+
+  showToast('已提交 ' + indices.length + ' 个生成任务', 'success');
+  switchMainTab('works');
+}
+
+function generateEpisodeQueue(proj, indices, currentIdx) {
+  if (currentIdx >= indices.length) {
+    // 全部完成
+    saveProjects();
+    renderDramaWorks();
+    showToast('所有剧集生成完成！🎉', 'success');
+    return;
+  }
+
+  var epIdx = indices[currentIdx];
+  var ep = proj.episodes[epIdx];
+  if (!ep) {
+    generateEpisodeQueue(proj, indices, currentIdx + 1);
+    return;
+  }
+
+  ep.status = 'generating';
+  ep.error = null;
+  saveProjects();
+  renderDramaWorks();
+
+  submitGeneration(proj, ep).then(function() {
+    // 成功
+    ep.status = 'done';
+    saveProjects();
+    renderDramaWorks();
+    // 继续下一集
+    setTimeout(function(){
+      generateEpisodeQueue(proj, indices, currentIdx + 1);
+    }, 1000);
+  }).catch(function(err) {
+    ep.status = 'failed';
+    ep.error = err.message || '生成失败';
+    saveProjects();
+    renderDramaWorks();
+    // 继续下一集
+    setTimeout(function(){
+      generateEpisodeQueue(proj, indices, currentIdx + 1);
+    }, 1000);
+  });
+}
+
+function generateSingleEpisode(i) {
+  var proj = getCurrentProject();
+  if (!proj || !proj.episodes[i]) return;
+  if (!dramaState.apiKey) { showToast('请先配置 API Key', 'error'); return; }
+
+  var ep = proj.episodes[i];
+  ep.status = 'generating';
+  ep.error = null;
+  renderEpisodes();
+  saveProjects();
+
+  submitGeneration(proj, ep).then(function() {
+    ep.status = 'done';
+    renderEpisodes();
+    saveProjects();
+    showToast('第 ' + (i+1) + ' 集生成成功！🎉', 'success');
+  }).catch(function(err) {
+    ep.status = 'failed';
+    ep.error = err.message || '生成失败';
+    renderEpisodes();
+    saveProjects();
+    showToast('生成失败: ' + (err.message || err), 'error');
+  });
+}
+
+function submitGeneration(proj, ep) {
+  return new Promise(function(resolve, reject) {
+    var model = document.getElementById('genModel').value;
+    var ratio = document.getElementById('genResolution').value;
+    var duration = parseInt(document.getElementById('genDuration').value);
+    var quality = document.getElementById('genQuality').value;
+    var negative = document.getElementById('genNegativePrompt').value.trim();
+    var useCharRef = document.getElementById('useCharacterRef').checked;
+
+    // 构建 prompt
+    var prompt = ep.content || ep.title;
+    var genre = proj.genre || '';
+
+    var stylePrompt = '';
+    switch(genre) {
+      case '都市': stylePrompt = '都市情感剧风格，真实场景，电影质感'; break;
+      case '玄幻': stylePrompt = '玄幻修仙风格，华丽特效，仙侠世界'; break;
+      case '古风': stylePrompt = '古风古装风格，精致服饰，古典美学'; break;
+      case '校园': stylePrompt = '校园青春风格，清新明亮，日系动漫感'; break;
+      case '悬疑': stylePrompt = '悬疑推理风格，暗色调，紧张氛围'; break;
+      case '科幻': stylePrompt = '科幻未来风格，赛博朋克，科技感'; break;
+      case '搞笑': stylePrompt = '搞笑喜剧风格，夸张表情，卡通渲染'; break;
+      default: stylePrompt = '高质量动画，电影级画面';
+    }
+
+    var fullPrompt = stylePrompt + '\n\n' + prompt;
+    if (useCharRef && proj.characters && proj.characters.length > 0) {
+      var charDescs = proj.characters.map(function(c) {
+        return c.name + '：' + (c.description || '');
+      }).join('\n');
+      fullPrompt += '\n\n角色设定：\n' + charDescs;
+    }
+
+    var content = [{type: 'text', text: fullPrompt}];
+
+    // 添加角色参考图
+    if (useCharRef && proj.characters) {
+      proj.characters.forEach(function(c) {
+        if (c.avatar) {
+          content.push({type: 'image_url', image_url: {url: c.avatar}, role: 'reference_image'});
+        }
+      });
+    }
+
+    var body = {
+      model: model,
+      content: content,
+      resolution: '720p',
+      ratio: ratio,
+      duration: duration,
+      watermark: false
+    };
+    if (negative) body.negative_prompt = negative;
+
+    fetch('https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + dramaState.apiKey
+      },
+      body: JSON.stringify(body)
+    }).then(function(r){return r.json()}).then(function(data) {
+      if (!data.id) {
+        var em = (data.error && (typeof data.error==='string'?data.error:data.error.message)) || data.message || '提交失败';
+        reject(new Error(em));
+        return;
+      }
+      // 轮询结果
+      pollTask(data.id, ep);
+      resolve(); // 立即resolve，轮询在后台进行
+    }).catch(function(e) {
+      reject(e);
+    });
+  });
+}
+
+function pollTask(taskId, ep) {
+  var attempts = 0;
+  var maxAttempts = 120;
+
+  function poll() {
+    if (++attempts > maxAttempts) {
+      ep.status = 'failed';
+      ep.error = '超时';
+      saveProjects();
+      renderDramaWorks();
+      return;
+    }
+
+    fetch('https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks/' + taskId, {
+      headers: {'Authorization': 'Bearer ' + dramaState.apiKey}
+    }).then(function(r){return r.json()}).then(function(d) {
+      if (d.status === 'succeeded') {
+        ep.status = 'done';
+        ep.videoUrl = d.content && d.content.video_url ? d.content.video_url : null;
+        saveProjects();
+        renderDramaWorks();
+        // 也更新分集视图
+        var activeStep = dramaState.currentStep;
+        if (activeStep === 2) renderEpisodes();
+      } else if (d.status === 'failed') {
+        ep.status = 'failed';
+        ep.error = d.error || '生成失败';
+        saveProjects();
+        renderDramaWorks();
+        if (dramaState.currentStep === 2) renderEpisodes();
+      } else {
+        ep.status = 'generating';
+        saveProjects();
+        setTimeout(poll, 5000);
+      }
+    }).catch(function() {
+      setTimeout(poll, 10000);
+    });
+  }
+
+  setTimeout(poll, 3000);
+}
+
+/* ========== 作品列表 ========== */
+function renderDramaWorks() {
+  var grid = document.getElementById('dramaGrid');
+  var projects = dramaState.projects || [];
+
+  if (projects.length === 0) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="icon">🎬</div><p>还没有短剧作品</p><p class="sub">创建你的第一个短剧项目吧</p></div>';
+    return;
+  }
+
+  grid.innerHTML = projects.map(function(p) {
+    var eps = p.episodes || [];
+    var doneCount = eps.filter(function(e){return e.status==='done'}).length;
+    var totalCount = eps.length;
+    var progress = totalCount > 0 ? Math.round(doneCount / totalCount * 100) : 0;
+    var firstVideo = null;
+    for (var i = 0; i < eps.length; i++) {
+      if (eps[i].videoUrl) { firstVideo = eps[i].videoUrl; break; }
+    }
+
+    var coverHtml = firstVideo
+      ? '<video src="'+firstVideo+'" muted loop></video>'
+      : '<div class="play-icon">🎬</div>';
+
+    var time = new Date(p.updatedAt || p.createdAt).toLocaleDateString('zh-CN');
+
+    return '<div class="drama-card" onclick="loadProject(\''+p.id+'\')">' +
+      '<div class="drama-cover">' +
+        coverHtml +
+        '<div class="progress-bar"><div class="fill" style="width:'+progress+'%"></div></div>' +
+      '</div>' +
+      '<div class="drama-info">' +
+        '<h4>'+escHtml(p.name || '未命名项目')+'</h4>' +
+        '<div class="meta">' +
+          '<span>'+doneCount+'/'+totalCount+' 集</span>' +
+          '<span>'+(p.genre||'')+'</span>' +
+          '<span>'+time+'</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  // 自动播放视频封面
+  setTimeout(function() {
+    document.querySelectorAll('.drama-card video').forEach(function(v) {
+      v.play().catch(function(){});
+    });
+  }, 500);
+}
+
+/* ========== 工具函数 ========== */
+function showToast(msg, type) {
+  var t = document.createElement('div');
+  t.className = 'toast ' + (type || '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){t.remove()}, 3000);
+}
+
+function escHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function escAttr(s) {
+  return (s || '').replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
