@@ -25,6 +25,15 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .topbar .api-dot.no .d{background:var(--err)}
 .layout{max-width:1200px;margin:0 auto;padding:16px;display:grid;grid-template-columns:1fr;gap:16px;min-height:calc(100vh - 54px)}
 @media(min-width:900px){.layout{grid-template-columns:400px 1fr;align-items:start}}
+@media(max-width:600px){
+  .topbar{height:auto;min-height:54px;padding:8px 12px;flex-wrap:wrap;gap:8px}
+  .topbar .logo{font-size:15px;order:1;flex:1}
+  .topbar .logo .dot{width:24px;height:24px;font-size:12px;border-radius:6px}
+  .topbar .nav-tabs{order:2;width:100%;margin-left:0;justify-content:center;gap:2px;display:flex}
+  .topbar .nav-tab{padding:6px 12px;font-size:12px;flex:1;text-align:center;max-width:50%}
+  .topbar .api-dot{order:3;padding:4px 8px;font-size:10px;margin-left:auto}
+  .topbar .api-dot span{display:none}
+}
 .left-panel{display:flex;flex-direction:column;gap:12px;min-height:0}
 .right-panel{display:flex;flex-direction:column;gap:12px;min-height:400px}
 .section{margin-bottom:0}

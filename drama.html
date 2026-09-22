@@ -225,12 +225,25 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
 /* 响应式 */
 @media(max-width:900px){
+  .topbar{height:auto;min-height:54px;padding:8px 12px;flex-wrap:wrap;gap:8px}
+  .topbar .back-btn{padding:5px 8px;font-size:12px;margin-right:4px;order:1}
+  .topbar .back-btn span{display:none}
+  .topbar .logo{font-size:14px;order:2;flex:1}
+  .topbar .logo .dot{width:24px;height:24px;font-size:12px;border-radius:6px}
+  .topbar .nav-tabs{order:3;width:100%;margin-left:0;justify-content:center;gap:2px}
+  .topbar .nav-tab{padding:6px 14px;font-size:12px;flex:1;text-align:center;max-width:50%}
+  .topbar .api-dot{order:4;margin-left:auto;padding:4px 8px;font-size:10px}
+  .topbar .api-dot span{display:none}
   .sidebar{width:60px;padding:12px 0}
   .step-item{padding:12px 10px;justify-content:center}
   .step-item .step-text,.step-item .step-desc{display:none}
   .sidebar-section,.project-list,.new-project-btn{display:none}
   .field-row{grid-template-columns:1fr}
   .gen-summary{grid-template-columns:repeat(2,1fr)}
+  .main-content{padding:12px}
+  .page-header h1{font-size:17px}
+  .card{padding:14px}
+  .card-title{font-size:14px}
 }
 </style>
 </head>
@@ -238,7 +251,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
 <!-- 顶部栏 -->
 <div class="topbar">
-  <div class="back-btn" onclick="location.href='index.html'">← 返回单视频生成</div>
+  <div class="back-btn" onclick="location.href='index.html'">← <span>返回单视频生成</span></div>
   <div class="logo"><div class="dot">🎬</div> AI短剧创作</div>
   <div class="nav-tabs">
     <div class="nav-tab active" id="tabCreate" onclick="switchMainTab('create')">创作工作台</div>
